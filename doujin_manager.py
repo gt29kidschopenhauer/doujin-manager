@@ -2,6 +2,12 @@ import os
 
 import discord
 from dotenv import load_dotenv
+import sys
+
+class InvalidNuclearCode(discord.DiscordException):
+	def __init__(self, code, **kwargs):
+		super().__init__(**kwargs)
+		self.code = code
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -28,5 +34,15 @@ async def on_message(message):
 		return
 	if 'nhentai.net' in message.content and (message.channel.category is category or message.channel.name == DOUJIN_CHANNEL):
 		print(1)
+	elif message.content.isdecimal() and int(message.content) > 600000:
+		raise InvalidNuclearCode(int(message.content))
+
+@client.event
+async def on_error(event, *args, **kwargs):
+	if event == 'on_message':
+		try:
+			raise
+		except InvalidNuclearCode as e:
+			print(e.code)
 
 client.run(TOKEN)

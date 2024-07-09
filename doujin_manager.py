@@ -47,8 +47,7 @@ def check_channel(doujin):
 				return OTHERS_CHANNEL_ID
 			elif t['name'] == 'yuri':
 				return EMUACH_CHANNEL_ID
-			else:
-				return CUNNY_CHANNEL_ID
+		return CUNNY_CHANNEL_ID
 	else:
 		return DOUJIN_CHANNEL_ID
 

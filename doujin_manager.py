@@ -29,8 +29,11 @@ intents.message_content = True
 intents.messages = True
 
 others_tag = ['vore', 'guro', 'necrophilia', 'futanari', 'dickgirl on male', 'dickgirl on female',
-			 'dickgirl on dickgirl', 'dickgirls only', 'sole dickgirl', 'full-packaged futanari',
-			 'futanarization', 'netorare', 'ryona', 'mmf threesome', 'gang rape', 'robot']
+			 'dickgirl on dickgirl', 'dickgirls only', 'sole dickgirl', 'male on dickgirl', 
+			 'full-packaged futanari', 'futanarization', 'netorare', 'ryona', 'mmf threesome', 
+			 'gang rape', 'robot', 'scat', 'scat insertion', 'enema', 'dick growth', 'pegging', 
+			 'penis enlargement', 'anal birth', 'unbirth', 'penis birth', 'nipple birth', 'nipple fuck',
+			 'cheating', 'swinging', 'piss drinking', 'bbm']
 
 def check_channel(doujin):
 	p = False

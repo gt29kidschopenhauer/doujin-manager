@@ -14,13 +14,13 @@ class InvalidNuclearCode(discord.DiscordException):
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
-GUILD = os.getenv('DISCORD_GUILD')
-CATEGORY = os.getenv("DISCORD_CATEGORY")
+GUILD = os.getenv('DISCORD_GUILD').split(", ")
+CATEGORY = os.getenv("DISCORD_CATEGORY").split(', ')
 DOUJIN_CHANNEL = os.getenv("DISCORD_DOUJIN_CHANNEL")
-CUNNY_CHANNEL_ID = int(os.getenv('DISCORD_CUNNY_CHANNEL_ID'))
-EMUACH_CHANNEL_ID = int(os.getenv('DISCORD_EMUACH_CHANNEL_ID'))
-OTHERS_CHANNEL_ID = int(os.getenv('DISCORD_OTHERS_CHANNEL_ID'))
-DOUJIN_CHANNEL_ID = int(os.getenv('DISCORD_DOUJIN_CHANNEL_ID'))
+CUNNY_CHANNEL_ID = list(map(int, os.getenv('DISCORD_CUNNY_CHANNEL_ID').split(', ')))
+EMUACH_CHANNEL_ID = list(map(int, os.getenv('DISCORD_EMUACH_CHANNEL_ID').split(', ')))
+OTHERS_CHANNEL_ID = list(map(int, os.getenv('DISCORD_OTHERS_CHANNEL_ID').split(', ')))
+DOUJIN_CHANNEL_ID = list(map(int, os.getenv('DISCORD_DOUJIN_CHANNEL_ID').split(', ')))
 
 nhentai = np_api()
 
@@ -57,13 +57,11 @@ bot = commands.Bot(intents=intents, command_prefix="!")
 @bot.event
 async def on_ready():
 	print(f'{bot.user} has connected to Discord!')
-	global guild, category
-	guild = discord.utils.get(bot.guilds, name=GUILD)
-	category = discord.utils.get(guild.categories, name=CATEGORY)
 
 @bot.command(name='dou', help='Display the doujin with the specified code')
 async def output_link(ctx, code):
-	if ctx.channel.category is category or ctx.channel.name == DOUJIN_CHANNEL:
+	index = GUILD.index(ctx.guild.name)
+	if ctx.channel.category.name == CATEGORY[index] or ctx.channel.name == DOUJIN_CHANNEL:
 		if ctx.author == bot.user:
 			return
 		try:
@@ -78,10 +76,10 @@ async def output_link(ctx, code):
 		else:
 			doujin = nhentai.searchExplicitWithID(int(code))
 			appr = check_channel(doujin)
-			if ctx.channel.id == appr:
+			if ctx.channel.id == appr[index]:
 				await ctx.send("https://nhentai.net/g/" + code + "/")
 			else:
-				await ctx.send("Right time, wrong place! Head over to <#" + str(appr) + "> and share your sauce there!")
+				await ctx.send("Right time, wrong place! Head over to <#" + str(appr[index]) + "> and share your sauce there!")
 
 @bot.event
 async def on_error(event, *args, **kwargs):

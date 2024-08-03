@@ -1,10 +1,9 @@
 import grequests
-from . import Constants
-from . import helper
+import helper.Constants as Constants
+import helper.helper as helper
 import requests
 import json
-from . import objects
-
+import helper.objects as objects
 
 class np_api:
     """

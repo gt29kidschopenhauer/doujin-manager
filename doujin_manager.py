@@ -1,7 +1,7 @@
 import os
 import sys
 
-from np_api.np import np_api
+from np import np_api
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv

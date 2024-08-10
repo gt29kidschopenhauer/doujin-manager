@@ -6,6 +6,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import requests
+import cloudscraper
 
 class InvalidNuclearCode(discord.DiscordException):
 	def __init__(self, msg, **kwargs):
@@ -21,6 +22,7 @@ CUNNY_CHANNEL_ID = list(map(int, os.getenv('DISCORD_CUNNY_CHANNEL_ID').split(', 
 EMUACH_CHANNEL_ID = list(map(int, os.getenv('DISCORD_EMUACH_CHANNEL_ID').split(', ')))
 OTHERS_CHANNEL_ID = list(map(int, os.getenv('DISCORD_OTHERS_CHANNEL_ID').split(', ')))
 DOUJIN_CHANNEL_ID = list(map(int, os.getenv('DISCORD_DOUJIN_CHANNEL_ID').split(', ')))
+TEST_CHANNEL_ID = int(os.getenv('DISCORD_TEST_CHANNEL_ID'))
 
 nhentai = np_api()
 
@@ -80,6 +82,15 @@ async def output_link(ctx, code):
 				await ctx.send("https://nhentai.net/g/" + code + "/")
 			else:
 				await ctx.send("Right time, wrong place! Head over to <#" + str(appr[index]) + "> and share your sauce there!")
+
+@bot.command(name='test', help='Testing~')
+async def testing(ctx, code):
+	if ctx.channel.id == TEST_CHANNEL_ID:
+		try:
+			scraper = cloudscraper.create_scraper()
+			print(scraper.get("https://nhentai.net/api/galleries/search?query=parodies:blue archive&page=1").text)
+		except:
+			print('Error')
 
 @bot.event
 async def on_error(event, *args, **kwargs):

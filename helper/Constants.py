@@ -62,10 +62,10 @@ HREF = "href"
 # DATA
 LXML = "lxml"
 
-
 class Affiliation(Enum):
     TAG = 1
     ARTIST = 2
     CHARACTER = 3
     PARODIE = 4
     GROUP = 5
+

@@ -4,14 +4,10 @@ import helper.helper as helper
 import requests
 import json
 import helper.objects as objects
+from random import randint
+import sqlite3
 
 class np_api:
-    """
-    Main-module for using API
-    
-    
-    """
-
     def __init__(self):
         pass
 
@@ -64,9 +60,6 @@ class np_api:
 
     def search(self, title=None, characters=[], parodies=[], artist=[], groups=[], tags=[],
                sort=False):
-        """
-        returns a generator of a search query
-        """
 
         sorting = "date"
         query = Constants.QUERY_URL
@@ -105,6 +98,8 @@ class np_api:
                 return
             for element in jresult["result"]:
                 yield objects.Medium(element)
+
+
 
     def searchExplicitWithID(self, id):
         """

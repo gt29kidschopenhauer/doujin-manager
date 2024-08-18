@@ -69,3 +69,14 @@ class Affiliation(Enum):
     PARODIE = 4
     GROUP = 5
 
+class DoujinType(Enum):
+    CUNNY = 1
+    EMUACH = 2
+    OTHERS = 3
+
+others_tag = {'vore', 'guro', 'necrophilia', 'futanari', 'dickgirl on male', 'dickgirl on female',
+             'dickgirl on dickgirl', 'dickgirls only', 'sole dickgirl', 'male on dickgirl', 
+             'full-packaged futanari', 'futanarization', 'netorare', 'ryona', 'mmf threesome', 
+             'gang rape', 'robot', 'scat', 'scat insertion', 'enema', 'dick growth', 'pegging', 
+             'penis enlargement', 'anal birth', 'unbirth', 'penis birth', 'nipple birth', 'nipple fuck',
+             'cheating', 'swinging', 'piss drinking', 'bbm', 'yaoi', 'bestiality', 'netorase'}

@@ -3,28 +3,12 @@ from . import Constants
 from . import objects
 from bs4 import BeautifulSoup
 import requests
-"""
-Provides helper methods for parsing and using the unofficial api.
-"""
 
 def createMedium(id):
-    """
-    Creates a medium from provided id.
-    
-    @param id identificator of the medium
-    @return medium with provided id
-    """
     result = requests.get(Constants.API_CALL_ID + id)
     return objects.Medium(result.text)
 
-
 def getList(affiliation, sort=False):
-    """
-    creates a generator for receiving a list of affiliation.
-    
-    @param affiliation sets the type of the list.
-    @return generator with list elements of affiliation typ.
-    """
     strategie = None
     if affiliation == Constants.Affiliation.TAG:
         strategie = TagStrategie(sort)
@@ -46,16 +30,10 @@ def getList(affiliation, sort=False):
 
 
 class AbstractStrategie:
-    """
-    Uses Strategie Pattern to get list of Constants.Affiliations types
-    """
     def __init__(self, sort):
         self._sort = sort
 
     def getList(self):
-        """
-        Schablonenmethode for providing the generator
-        """
         site = self.getFirstSite()
         results, lastPage = self.parsingSite(site, first=True)
         urls = self.createUrls(lastPage)
@@ -68,9 +46,6 @@ class AbstractStrategie:
                 yield x
 
     def parsingSite(self, site, first=False):
-        """
-        Parsing site informations
-        """
         if first:
             soup = BeautifulSoup(site.text, Constants.LXML)
             results = soup.select(Constants.SELECT_TAG)
@@ -84,9 +59,6 @@ class AbstractStrategie:
 
 
 class TagStrategie(AbstractStrategie):
-    """
-    Strategie for getting tags
-    """
     def __init__(self, sort):
         super().__init__(sort)
 
@@ -104,9 +76,6 @@ class TagStrategie(AbstractStrategie):
 
 
 class ArtistStrategie(AbstractStrategie):
-    """
-    Strategie for getting artists
-    """
     def __init__(self, sort):
         super().__init__(sort)
 
@@ -144,9 +113,6 @@ class CharacterStrategie(AbstractStrategie):
 
 
 class ParodieStrategie(AbstractStrategie):
-    """
-    Strategie for getting parodies
-    """
     def __init__(self, sort):
         super().__init__(sort)
 
@@ -164,9 +130,6 @@ class ParodieStrategie(AbstractStrategie):
 
 
 class GroupStrategie(AbstractStrategie):
-    """
-    Strategie for getting groups
-    """
     def __init__(self, sort):
         super().__init__(sort)
 

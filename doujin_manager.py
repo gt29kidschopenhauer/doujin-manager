@@ -185,3 +185,6 @@ async def on_error(event, *args, **kwargs):
 			print(e.msg)
 
 bot.run(TOKEN)
+
+def quang():
+	print("Quang stupid")

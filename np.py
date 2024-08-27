@@ -6,6 +6,7 @@ import json
 import helper.objects as objects
 from random import randint, choice
 import sqlite3
+from string import capwords
 
 class np_api:
     def __init__(self):
@@ -39,6 +40,29 @@ class np_api:
     def pickRandom(self):
         random = requests.head(Constants.RANDOM_URL, allow_redirects=True)
         return helper.createMedium(random.url.split("/")[-2])
+
+    def info(self, code):
+        jreq = json.loads(requests.get(Constants.API_CALL_ID + str(code)).text)
+        authors = []
+        characters = []
+        for tag in jreq["tags"]:
+            if tag["type"] == "artist":
+                authors.append(capwords(tag["name"]))
+            elif tag["type"] == "character":
+                characters.append(capwords(tag["name"]))
+            elif tag["type"] == "language":
+                if tag["name"] == "english":
+                    language = "English"
+                elif tag["name"] == "japanese":
+                    language = "Japanese"
+                else:
+                    language = "Chinese"
+        in4 = {
+            "language": language,
+            "authors": authors,
+            "characters": characters
+        }
+        return in4
 
     def search(self, title=None, characters=[], parodies=[], artist=[], groups=[], tags=[],
                sort=False):
@@ -228,5 +252,5 @@ class np_api:
                 return 0
             return choice(codes)[0]
 
-    def searchExplicitWithID(self, id):
-        return helper.createMedium(str(id))
+    def searchExplicitWithID(self, code):
+        return helper.createMedium(str(code))

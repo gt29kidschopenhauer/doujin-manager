@@ -45,6 +45,7 @@ class np_api:
         jreq = json.loads(requests.get(Constants.API_CALL_ID + str(code)).text)
         authors = []
         characters = []
+        parodies = []
         for tag in jreq["tags"]:
             if tag["type"] == "artist":
                 authors.append(capwords(tag["name"]))
@@ -55,12 +56,15 @@ class np_api:
                     language = "English"
                 elif tag["name"] == "japanese":
                     language = "Japanese"
-                else:
+                elif tag["name"] == "chinese":
                     language = "Chinese"
+            elif tag["type"] == "parody":
+                parodies.append(capwords(tag["name"]))
         in4 = {
             "language": language,
             "authors": authors,
-            "characters": characters
+            "characters": characters,
+            "parodies": parodies
         }
         return in4
 

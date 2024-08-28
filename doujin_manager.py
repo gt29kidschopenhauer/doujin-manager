@@ -54,6 +54,33 @@ def check_channel(doujin):
 	else:
 		return DOUJIN_CHANNEL_ID
 
+def echoed_doujin_message(blue_archive, code):
+	info = nhentai.info(code)
+	msg = ""
+	if not blue_archive and len(info["parodies"]) != 0:
+		if len(info["parodies"]) == 1:
+			msg += "- **Parody:** " + info["parodies"][0] + "\n"
+		else:
+			msg += "- **Parodies:** " + ", ".join(info["parodies"]) + "\n"
+	if len(info["authors"]) == 1:
+		msg += "- **Author:** " + info["authors"][0] + "\n"
+	elif len(info["authors"]) != 0:
+		msg += "- **Authors:** " + ", ".join(info["authors"]) + "\n"
+	if not blue_archive:
+		if len(info["characters"]) == 1:
+			msg += "- **Character:** " + info["characters"][0] + "\n"
+		elif len(info["characters"]) != 0:
+			msg += "- **Characters:** " + ", ".join(info["characters"]) + "\n"
+	else:
+		info["characters"] = list(map(lambda full_name: full_name.split()[0], info["characters"]))
+		if len(info["characters"]) == 1:
+			msg += "- **Student:** " + info["characters"][0] + "\n"
+		elif len(info["characters"]) != 0:
+			msg += "- **Students:** " + ", ".join(info["characters"]) + "\n"
+	if info["language"]:
+		msg += "- **Language:** " + info["language"] + '\n'
+	return msg
+
 bot = commands.Bot(intents=intents, command_prefix="!")
 
 async def run_blocking(blocking_func, *args, **kwargs):
@@ -184,4 +211,4 @@ async def on_error(event, *args, **kwargs):
 		except InvalidNuclearCode as e:
 			print(e.msg)
 
-bot.run(TOKEN)
+#bot.run(TOKEN)

@@ -2,7 +2,7 @@ from . import Constants
 import logging
 import json
 import datetime
-
+from string import capwords
 
 class Medium:
     """
@@ -50,6 +50,7 @@ class Medium:
         self._pages = None
         self._uploadDate = None
         self._numberFavorites = None
+        self._doujinMessage = None
 
     @property
     def mediaID(self):
@@ -165,17 +166,18 @@ class Medium:
             logging.debug("Set number of Pages: %s", self._numberPages)
         return self._numberPages
 
-    def _getInfos(self, type):
+    def _getInfos(self, type, cap):
         """
         helper method to get informations out of the json
         """
-        result = []
+        result = set()
         x = self._rawData[Constants.TAGS]
         for entry in x:
             if entry[Constants.TYPE] == type:
-                result.append(
-                    {Constants.NAME: entry[Constants.NAME], Constants.COUNT: entry[Constants.COUNT],
-                        Constants.ID: entry[Constants.ID]})
+                if cap:
+                    result.add(capwords(entry[Constants.NAME]))
+                else:
+                    result.add(entry[Constants.NAME])
         return result
 
     @property
@@ -184,7 +186,7 @@ class Medium:
         returns tag informations
         """
         if self._tag is None:
-            self._tag = self._getInfos(type=Constants.TAG)
+            self._tag = self._getInfos(type=Constants.TAG, cap=False)
             logging.debug("Set tags")
         return self._tag
 
@@ -194,7 +196,7 @@ class Medium:
         returns character informations
         """
         if self._character is None:
-            self._character = self._getInfos(type=Constants.CHARACTER)
+            self._character = self._getInfos(type=Constants.CHARACTER, cap=True)
             logging.debug("Set characters")
         return self._character
 
@@ -204,7 +206,7 @@ class Medium:
         returns artists information
         """
         if self._artist is None:
-            self._artist = self._getInfos(type=Constants.ARTIST)
+            self._artist = self._getInfos(type=Constants.ARTIST, cap=True)
             logging.debug("Set artists")
         return self._artist
 
@@ -214,7 +216,7 @@ class Medium:
         returns groups information
         """
         if self._group is None:
-            self._group = self._getInfos(type=Constants.GROUP)
+            self._group = self._getInfos(type=Constants.GROUP, cap=False)
             logging.debug("Set groups")
         return self._group
 
@@ -224,7 +226,7 @@ class Medium:
         returns parodies information
         """
         if self._parodie is None:
-            self._parodie = self._getInfos(type=Constants.PARODY)
+            self._parodie = self._getInfos(type=Constants.PARODY, cap=True)
             logging.debug("Set parodies")
         return self._parodie
 
@@ -234,7 +236,7 @@ class Medium:
         returns language information
         """
         if self._language is None:
-            self._language = self._getInfos(type=Constants.LANGUAGE)
+            self._language = self._getInfos(type=Constants.LANGUAGE, cap=True)
             logging.debug("Set language")
         return self._language
 
@@ -244,9 +246,45 @@ class Medium:
         returns categories information
         """
         if self._categorie is None:
-            self._categorie = self._getInfos(type=Constants.CATEGORY)
+            self._categorie = self._getInfos(type=Constants.CATEGORY, cap=False)
             logging.debug("Set categories")
         return self._categorie
+
+    @property
+    def echoed_doujin_message(self):
+        blue_archive = False
+        parodies = self.parodie
+        characters = self.character
+        authors = self.artist
+        language = self.language
+        language.discard("Translated")
+        if "Blue Archive" in parodies:
+            blue_archive = True       
+        msg = ""
+        if not blue_archive and len(parodies) != 0:
+            if len(parodies) == 1:
+                msg += "- **Parody:** " + parodies.pop() + "\n"
+            else:
+                msg += "- **Parodies:** " + ", ".join(parodies) + "\n"
+        if len(authors) == 1:
+            msg += "- **Author:** " + authors.pop() + "\n"
+        elif len(authors) != 0:
+            msg += "- **Authors:** " + ", ".join(authors) + "\n"
+        if not blue_archive:
+            if len(characters) == 1:
+                msg += "- **Character:** " + characters.pop() + "\n"
+            elif len(characters) != 0:
+                msg += "- **Characters:** " + ", ".join(characters) + "\n"
+        else:
+            characters = list(filter(lambda name: name != "Sensei", map(lambda full_name: full_name.split()[0], characters)))
+            if len(characters) == 1:
+                msg += "- **Student:** " + characters.pop() + "\n"
+            elif len(characters) != 0:
+                msg += "- **Students:** " + ", ".join(characters) + "\n"
+        if language:
+            msg += "- **Language:** " + language.pop() + '\n'
+        self._doujinMessage = msg
+        return self._doujinMessage
 
     def __str__(self):
         """

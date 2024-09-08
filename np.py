@@ -6,7 +6,6 @@ import json
 import helper.objects as objects
 from random import randint, choice
 import sqlite3
-from string import capwords
 
 class np_api:
     def __init__(self):
@@ -40,33 +39,6 @@ class np_api:
     def pickRandom(self):
         random = requests.head(Constants.RANDOM_URL, allow_redirects=True)
         return helper.createMedium(random.url.split("/")[-2])
-
-    def info(self, code):
-        jreq = json.loads(requests.get(Constants.API_CALL_ID + str(code)).text)
-        authors = []
-        characters = []
-        parodies = []
-        for tag in jreq["tags"]:
-            if tag["type"] == "artist":
-                authors.append(capwords(tag["name"]))
-            elif tag["type"] == "character":
-                characters.append(capwords(tag["name"]))
-            elif tag["type"] == "language":
-                if tag["name"] == "english":
-                    language = "English"
-                elif tag["name"] == "japanese":
-                    language = "Japanese"
-                elif tag["name"] == "chinese":
-                    language = "Chinese"
-            elif tag["type"] == "parody":
-                parodies.append(capwords(tag["name"]))
-        in4 = {
-            "language": language,
-            "authors": authors,
-            "characters": characters,
-            "parodies": parodies
-        }
-        return in4
 
     def search(self, title=None, characters=[], parodies=[], artist=[], groups=[], tags=[],
                sort=False):
@@ -125,22 +97,25 @@ class np_api:
                 if num_pages == 0:
                     return 0
                 elif num_pages == 1:
-                    code = []
+                    print('1')
+                    doujins = []
                     for doujin in jresult["result"]:
+                        dou = objects.Medium(doujin)
                         cunny = True
                         compilation = False
-                        for tag in doujin["tags"]:
-                            if tag["type"] == "tag" and (tag["name"] in Constants.others_tag or tag["name"] == "yuri"):
+                        for tag in doujin.tag:
+                            if tag in Constants.others_tag or tag == "yuri":
                                 cunny = False
                                 break
-                            elif tag["type"] == "parody" and tag["name"] != "blue archive":
+                        for parody in doujin.parodie:
+                            if parody != "Blue Archive":
                                 compilation = True
                                 break
                         if cunny and not compilation:
-                            code.append(doujin["id"])
-                    if len(code) == 0:
+                            doujins.append(doujin)
+                    if len(doujins) == 0:
                         return 0
-                    return choice(code)
+                    return choice(doujins)
                 cunny = False
                 compilation = True
                 count = 0
@@ -158,15 +133,16 @@ class np_api:
                         count += 1
                         continue
                     doujin_num = randint(0, len(jresult["result"]) - 1)
-                    for tag in jresult["result"][doujin_num]["tags"]:
-                        if tag['type'] == 'tag' and (tag['name'] in Constants.others_tag or tag['name'] == 'yuri'):
+                    doujin = objects.Medium(jresult["result"][doujin_num])
+                    for tag in doujin.tag:
+                        if tag in Constants.others_tag or tag == 'yuri':
                             cunny = False
                             break
-                        elif tag["type"] == "parody" and tag["name"] != "blue archive":
+                    for parody in doujin.parodie:
+                        if parody != "Blue Archive":
                             compilation = True
                             break
-                    code = jresult['result'][doujin_num]['id']
-                return code
+                return doujin
             elif doujin_type == Constants.DoujinType.EMUACH:
                 query += ' tags:yuri'
                 result = requests.get(query).text
@@ -187,17 +163,19 @@ class np_api:
                     if "error" in jresult:
                         continue
                     for doujin in jresult["result"]:
+                        dou = objects.Medium(doujin)
                         others = False
                         compilation = False
-                        for tag in doujin["tags"]:
-                            if tag['type'] == 'tag' and tag['name'] in Constants.others_tag:
+                        for tag in dou.tag:
+                            if tag in Constants.others_tag:
                                 others = True
                                 break
-                            elif tag["type"] == "parody" and tag["name"] != "blue archive":
+                        for parody in dou.parodie:
+                            if parody != "Blue Archive":
                                 compilation = True
                                 break
                         if not others and not compilation:
-                            emuach_doujins.append(doujin["id"])
+                            emuach_doujins.append(dou)
                 if len(emuach_doujins) == 0:
                     return 0
                 return choice(emuach_doujins)
@@ -225,9 +203,10 @@ class np_api:
                         if "error" in j:
                             continue
                         for doujin in j["result"]:
+                            dou = objects.Medium(doujin)
                             compilation = False
-                            for tag in doujin["tags"]:
-                                if tag["type"] == "parody" and tag["name"] != "blue archive":
+                            for parody in dou.parodie:
+                                if parody != "Blue Archive":
                                     compilation = True
                                     break
                             if not compilation:
@@ -254,7 +233,7 @@ class np_api:
                 codes = cur.execute('SELECT doujin_id FROM sora WHERE doujin_type = "others"').fetchall()
             if len(codes) == 0:
                 return 0
-            return choice(codes)[0]
+            return objects.Medium(choice(codes)[0])
 
     def searchExplicitWithID(self, code):
         return helper.createMedium(str(code))

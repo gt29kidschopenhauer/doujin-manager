@@ -36,50 +36,18 @@ intents.message_content = True
 intents.messages = True
 
 def check_channel(doujin):
-	p = False
-	for parody in doujin.parodie:
-		if parody['name'] == 'blue archive':
-			p = True
-			break
-	if p:
+	if "Blue Archive" in doujin.parodie:
 		yuri = False
 		for t in doujin.tag:
-			if t['name'] in Constants.others_tag:
+			if t in Constants.others_tag:
 				return OTHERS_CHANNEL_ID
-			elif t['name'] == 'yuri':
+			elif t == 'yuri':
 				yuri = True
 		if yuri:
 			return EMUACH_CHANNEL_ID
 		return CUNNY_CHANNEL_ID
 	else:
 		return DOUJIN_CHANNEL_ID
-
-def echoed_doujin_message(blue_archive, code):
-	info = nhentai.info(code)
-	msg = ""
-	if not blue_archive and len(info["parodies"]) != 0:
-		if len(info["parodies"]) == 1:
-			msg += "- **Parody:** " + info["parodies"][0] + "\n"
-		else:
-			msg += "- **Parodies:** " + ", ".join(info["parodies"]) + "\n"
-	if len(info["authors"]) == 1:
-		msg += "- **Author:** " + info["authors"][0] + "\n"
-	elif len(info["authors"]) != 0:
-		msg += "- **Authors:** " + ", ".join(info["authors"]) + "\n"
-	if not blue_archive:
-		if len(info["characters"]) == 1:
-			msg += "- **Character:** " + info["characters"][0] + "\n"
-		elif len(info["characters"]) != 0:
-			msg += "- **Characters:** " + ", ".join(info["characters"]) + "\n"
-	else:
-		info["characters"] = list(map(lambda full_name: full_name.split()[0], info["characters"]))
-		if len(info["characters"]) == 1:
-			msg += "- **Student:** " + info["characters"][0] + "\n"
-		elif len(info["characters"]) != 0:
-			msg += "- **Students:** " + ", ".join(info["characters"]) + "\n"
-	if info["language"]:
-		msg += "- **Language:** " + info["language"] + '\n'
-	return msg
 
 bot = commands.Bot(intents=intents, command_prefix="!")
 
@@ -107,10 +75,11 @@ async def output_link(ctx, code):
 		except InvalidNuclearCode as e:
 			await ctx.send(e.msg)
 		else:
-			doujin = nhentai.searchExplicitWithID(int(code))
+			doujin = await run_blocking(nhentai.searchExplicitWithID, int(code))
+			msg = doujin.echoed_doujin_message
 			appr = check_channel(doujin)
 			if ctx.channel.id == appr[index]:
-				await ctx.send("https://nhentai.net/g/" + code + "/")
+				await ctx.send(msg + "https://nhentai.net/g/" + code + "/")
 			else:
 				await ctx.send("Right time, wrong place! Head over to <#" + str(appr[index]) + "> and share your sauce there!")
 
@@ -160,49 +129,15 @@ async def random_ba_dou(ctx, *name):
 		elif code == -1:
 			await ctx.send("Sorry! Something went wrong!")
 			return
-		await ctx.send("https://nhentai.net/g/" + str(code) + "/")
+		await ctx.send(code.echoed_doujin_message + "https://nhentai.net/g/" + str(code.id) + "/")
 
 @bot.command(name='test', help='Testing~')
-async def testing(ctx, *name):
+async def testing(ctx, code):
 	if ctx.channel.id == TEST_CHANNEL_ID:
-		if ctx.author == bot.user:
-			return
-		try:
-			assert len(name) <= 1
-		except AssertionError:
-			await ctx.send("Too many arguments! Just the student's first name please!")
-			return
-		doujin_type = Constants.DoujinType.OTHERS
-		if len(name) == 1:
-			data = cur.execute('SELECT full_name FROM students WHERE command = ?', (name[0].lower(),)).fetchall()
-			try:
-				assert len(data) != 0
-			except AssertionError:
-				await ctx.send("Invalid student name!")
-				return
-			codes = []
-			for full_name in data:
-				code = await run_blocking(nhentai.searchRandomBADoujin, full_name[0].lower(), doujin_type)
-				codes.append(code)
-		else:
-			code = await run_blocking(nhentai.searchRandomBADoujin, None, doujin_type)
-			codes = [code]
-		normal = list(filter(lambda x: x != -1, codes))
-		if len(normal) == 0:
-			code = -1
-		else:
-			functional = list(filter(lambda x: x != 0, normal))
-			if len(functional) == 0:
-				code = 0
-			else:
-				code = choice(functional)
-		if code == 0:
-			await ctx.send("Sorry! There's no " + name[0][0].upper() + name[0][1:] + ' doujins of this type yet!')
-			return
-		elif code == -1:
-			await ctx.send("Sorry! Something went wrong!")
-			return
-		await ctx.send("https://nhentai.net/g/" + str(code) + "/")
+		doujin = await run_blocking(nhentai.searchExplicitWithID, int(code))
+		msg = doujin.echoed_doujin_message
+		await ctx.send(msg + "https://nhentai.net/g/" + code + "/")
+
 @bot.event
 async def on_error(event, *args, **kwargs):
 	if event == 'on_message':
@@ -211,4 +146,4 @@ async def on_error(event, *args, **kwargs):
 		except InvalidNuclearCode as e:
 			print(e.msg)
 
-#bot.run(TOKEN)
+bot.run(TOKEN)

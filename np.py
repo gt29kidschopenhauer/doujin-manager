@@ -97,22 +97,21 @@ class np_api:
                 if num_pages == 0:
                     return 0
                 elif num_pages == 1:
-                    print('1')
                     doujins = []
                     for doujin in jresult["result"]:
                         dou = objects.Medium(doujin)
                         cunny = True
                         compilation = False
-                        for tag in doujin.tag:
+                        for tag in dou.tag:
                             if tag in Constants.others_tag or tag == "yuri":
                                 cunny = False
                                 break
-                        for parody in doujin.parodie:
+                        for parody in dou.parodie:
                             if parody != "Blue Archive":
                                 compilation = True
                                 break
                         if cunny and not compilation:
-                            doujins.append(doujin)
+                            doujins.append(dou)
                     if len(doujins) == 0:
                         return 0
                     return choice(doujins)

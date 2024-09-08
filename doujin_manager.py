@@ -129,7 +129,11 @@ async def random_ba_dou(ctx, *name):
 		elif code == -1:
 			await ctx.send("Sorry! Something went wrong!")
 			return
-		await ctx.send(code.echoed_doujin_message + "https://nhentai.net/g/" + str(code.id) + "/")
+	elif ctx.channel.name == DOUJIN_CHANNEL:
+		code = nhentai.pickRandom()
+		while "Blue Archive" in code.parodie:
+			code = nhentai.pickRandom()
+	await ctx.send(code.echoed_doujin_message + "https://nhentai.net/g/" + str(code.id) + "/")
 
 @bot.command(name='test', help='Testing~')
 async def testing(ctx, code):

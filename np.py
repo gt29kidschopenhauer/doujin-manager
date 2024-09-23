@@ -209,7 +209,7 @@ class np_api:
                                     compilation = True
                                     break
                             if not compilation:
-                                codes.add(doujin["id"])
+                                codes.add(dou)
                 if -1 in codes:
                     if len(codes) == 1:
                         return -1

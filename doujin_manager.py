@@ -83,7 +83,7 @@ async def output_link(ctx, code):
 			else:
 				await ctx.send("Right time, wrong place! Head over to <#" + str(appr[index]) + "> and share your sauce there!")
 
-@bot.command(name='rand', help='Display a random BA doujin. Only usable in a BA channel.')
+@bot.command(name='rand', help='Display a random doujin.')
 async def random_ba_dou(ctx, *name):
 	index = GUILD.index(ctx.guild.name)
 	if ctx.channel.category.name == CATEGORY[index]:

@@ -6,6 +6,7 @@ import json
 import helper.objects as objects
 from random import randint, choice
 import sqlite3
+from string import capwords
 
 class np_api:
     def __init__(self):
@@ -179,51 +180,22 @@ class np_api:
                     return 0
                 return choice(emuach_doujins)
             else:
-                codes = set()
-                for tag in Constants.others_tag:
-                    new_query = query + ' tags:' + tag
-                    req = requests.get(new_query)
-                    while req.text[0] == "<":
-                        req = requests.get(new_query)
-                    jresult = json.loads(req.text)
-                    if "error" in jresult:
-                        codes.add(-1)
-                        continue
-                    elif jresult["num_pages"] == 0:
-                        codes.add(0)
-                        continue
-                    greqs = (grequests.get(new_query + "&page=" + str(i)) for i in range(1, jresult["num_pages"] + 1))
-                    generator = grequests.imap(greqs, stream=True)
-                    for page in generator:
-                        try:
-                            j = json.loads(page.text)
-                        except:
-                            return -1
-                        if "error" in j:
-                            continue
-                        for doujin in j["result"]:
-                            dou = objects.Medium(doujin)
-                            compilation = False
-                            for parody in dou.parodie:
-                                if parody != "Blue Archive":
-                                    compilation = True
-                                    break
-                            if not compilation:
-                                codes.add(doujin["id"])
-                if -1 in codes:
-                    if len(codes) == 1:
-                        return -1
-                    else:
-                        codes.remove(-1)
-                if 0 in codes:
-                    if len(codes) == 1:
-                        return 0
-                    else:
-                        codes.remove(0)
-                return choice(list(codes))
+                conn = sqlite3.connect('doujins.db')
+                cur = conn.cursor()
+                if name:
+                    cur.execute("SELECT doujin_id FROM others_doujin WHERE full_name = ?", (capwords(name),))
+                else:
+                    cur.execute("SELECT doujin_id FROM others_doujin")
+                all_codes = cur.fetchall()
+                if len(all_codes) == 0:
+                    return 0
+                conn.close()
+                code = choice(all_codes)[0]
+                rq = requests.get(Constants.API_CALL_ID + str(code))
+                return objects.Medium(rq.text)
         else:
-            con = sqlite3.connect('doujins.db')
-            cur = con.cursor()
+            conn = sqlite3.connect('doujins.db')
+            cur = conn.cursor()
             if doujin_type == Constants.DoujinType.CUNNY:
                 codes = cur.execute('SELECT doujin_id FROM sora WHERE doujin_type = "cunny"').fetchall()
             elif doujin_type == Constants.DoujinType.EMUACH:
@@ -232,7 +204,10 @@ class np_api:
                 codes = cur.execute('SELECT doujin_id FROM sora WHERE doujin_type = "others"').fetchall()
             if len(codes) == 0:
                 return 0
-            return objects.Medium(choice(codes)[0])
+            conn.close()
+            code = choice(codes)[0]
+            rq = requests.get(Constants.API_CALL_ID + str(code))
+            return objects.Medium(rq.text)
 
     def searchExplicitWithID(self, code):
         return helper.createMedium(str(code))

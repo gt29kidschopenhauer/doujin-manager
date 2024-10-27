@@ -1,4 +1,6 @@
 from enum import Enum
+from dotenv import load_dotenv
+import os
 """
 Some constants used in the programm
 """
@@ -74,9 +76,6 @@ class DoujinType(Enum):
     EMUACH = 2
     OTHERS = 3
 
-others_tag = {'vore', 'guro', 'necrophilia', 'futanari', 'dickgirl on male', 'dickgirl on female',
-             'dickgirl on dickgirl', 'dickgirls only', 'sole dickgirl', 'male on dickgirl', 
-             'full-packaged futanari', 'futanarization', 'netorare', 'ryona', 'mmf threesome', 
-             'gang rape', 'robot', 'scat', 'scat insertion', 'enema', 'dick growth', 'pegging', 
-             'penis enlargement', 'anal birth', 'unbirth', 'penis birth', 'nipple birth', 'nipple fuck',
-             'cheating', 'swinging', 'piss drinking', 'bbm', 'yaoi', 'bestiality', 'netorase'}
+load_dotenv()
+
+others_tag = set(os.getenv("OTHERS_TAG").split(", "))

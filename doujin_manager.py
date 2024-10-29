@@ -10,6 +10,7 @@ import helper.Constants as Constants
 import sqlite3
 from random import choice
 import functools
+from time import time
 
 class InvalidNuclearCode(discord.DiscordException):
 	def __init__(self, msg, **kwargs):
@@ -138,9 +139,16 @@ async def random_ba_dou(ctx, *name):
 @bot.command(name='test', help='Testing~')
 async def testing(ctx, code):
 	if ctx.channel.id == TEST_CHANNEL_ID:
+		t = time()
+		await ctx.send(str(time() - t))
 		doujin = await run_blocking(nhentai.searchExplicitWithID, int(code))
-		msg = doujin.echoed_doujin_message
-		await ctx.send(msg + "https://nhentai.net/g/" + code + "/")
+		await ctx.send(str(time() - t))
+		if doujin == -1:
+			await ctx.send("INVALID")
+		else:
+			msg = doujin.echoed_doujin_message
+			await ctx.send(msg + "https://nhentai.net/g/" + code + "/")
+			await ctx.send(str(time() - t))
 
 @bot.event
 async def on_error(event, *args, **kwargs):

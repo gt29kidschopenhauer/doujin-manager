@@ -1,12 +1,15 @@
 import grequests
+import json
 from . import Constants
 from . import objects
 from bs4 import BeautifulSoup
 import requests
 
 def createMedium(id):
-    result = requests.get(Constants.API_CALL_ID + id)
-    return objects.Medium(result.text)
+    result = json.loads(requests.get(Constants.API_CALL_ID + id).text)
+    if "id" not in result:
+        return -1
+    return objects.Medium(result)
 
 def getList(affiliation, sort=False):
     strategie = None

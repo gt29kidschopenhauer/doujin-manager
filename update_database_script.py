@@ -35,18 +35,21 @@ for i in range(1, num_pages + 1):
 		for tag in doujin["tags"]:
 			if tag["type"] == "language" and tag["name"] != "translated":
 				language = tag["name"]
-			elif tag["type"] == "type":
+			elif tag["type"] == "tag":
 				if not others:
 					if tag["name"] in Constants.others_tag:
 						others = True
 					elif tag["name"] == "yuri":
 						emuach = True
-			elif tag["type"] == "artist":
-				artist.append(tag["name"])
-			elif tag["type"] == "group":
-				group.append(tag["name"])
-			elif tag["type"] == "character" and tag['name'] != 'sensei':
-				character.append(capwords(tag["name"]))
+			else:
+				name = tag["name"].split('|')
+				for n in name:
+					if tag["type"] == "artist":
+						artist.append(n.strip())
+					elif tag["type"] == "group":
+						group.append(n.strip())
+					elif tag["type"] == "character" and n != 'sensei':
+						character.append(capwords(n.strip()))
 		if others:
 			doujin_type = "others"
 		elif emuach:

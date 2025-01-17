@@ -32,7 +32,7 @@ class InvalidInput(DiscordException):
 		elif self.__error_code == self.invalidFlag:
 			self.msg = "'" + self.__error_data + "' isn't a valid flag! Use '-a', '-g', '-da', '-db' or '-l'."
 		elif self.__error_code == self.invalidDate:
-			self.msg = "ERROR! '" + self.__error_data + "' is not a valid date!"
+			self.msg = "ERROR! '" + self.__error_data + "' is not a valid date! Please use the D-M-Y format!"
 		elif self.__error_code == self.invalidLanguage:
 			self.msg = "The language '" + self.__error_data + "' is not supported by nhentai. The site supports japanese, chinese and english."
 		elif self.__error_code == self.flagWrongPosition:
@@ -40,4 +40,4 @@ class InvalidInput(DiscordException):
 		elif self.__error_code == self.repetitiveFlag:
 			self.msg = "Repetitive flags! Multiple '" + self.__error_data + "' flags used!"
 		else:
-			self.msg = "Invalid! " + self.__error_data[0] + ' -> ' + self.__error_data[1] + ' is not a valid time period!'
+			self.msg = "Invalid! " + self.__error_data[1] + ' -> ' + self.__error_data[0] + ' is not a valid time period!'

@@ -3,7 +3,7 @@ import sys
 
 from np import np_api
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import requests
 import helper.Constants as Constants
@@ -163,9 +163,18 @@ def generate_random_BA_doujin(doujin_type, full_name, after, before, language, a
 	con.close()
 	return code
 
+with open('update_database_script.py', "r") as file:
+	scr = file.read()
+
+@tasks.loop(seconds=60)
+async def update_script():
+	await run_blocking(exec, scr)
+	print('DONE')
+
 @bot.event
 async def on_ready():
 	print(f'{bot.user} has connected to Discord!')
+	update_script.start()
 
 @bot.command(name='dou', help='Display the doujin with the specified code.')
 async def output_link(ctx, code):
@@ -228,13 +237,14 @@ async def random_ba_dou(ctx, *args):
 				await ctx.send("Sorry! There's no doujins of this type yet!")
 				return
 			code = nhentai.searchExplicitWithID(choice(codes))
+			await ctx.send(code.echoed_doujin_message + "https://nhentai.net/g/" + str(code.id) + "/")
 		except InvalidInput as e:
 			await ctx.send(e.msg)
 	elif ctx.channel.name == DOUJIN_CHANNEL:
 		code = nhentai.pickRandom()
 		while "Blue Archive" in code.parodie:
 			code = nhentai.pickRandom()
-	await ctx.send(code.echoed_doujin_message + "https://nhentai.net/g/" + str(code.id) + "/")
+		await ctx.send(code.echoed_doujin_message + "https://nhentai.net/g/" + str(code.id) + "/")
 
 @bot.command(name='test', help='Testing~')
 async def testing(ctx, *args):

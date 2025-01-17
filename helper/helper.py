@@ -27,7 +27,7 @@ def getList(affiliation, sort=False):
         raise TypeError
     generator = strategie.getList()
     for entry in generator:
-        text = entry.text.rsplit(' ', 1)
+        text = entry.get_text(" ").rsplit(' ', 1)
         yield {Constants.NAME: text[0], Constants.COUNT: text[1][1:-1],
                Constants.ID: entry[Constants.CLASS][1][4:]}
 
@@ -52,14 +52,16 @@ class AbstractStrategie:
         if first:
             soup = BeautifulSoup(site.text, Constants.LXML)
             results = soup.select(Constants.SELECT_TAG)
-            lastPage = int(soup.select(Constants.SELECT_LAST_PAGE)[
-                           0][Constants.HREF][6:])
+            data = soup.select(Constants.SELECT_LAST_PAGE)[0][Constants.HREF]
+            for i in range(len(data)):
+                if data[i].isdigit():
+                    lastPage = int(data[i:])
+                    break
             return (results, lastPage)
         else:
             soup = BeautifulSoup(site.text, Constants.LXML)
             results = soup.select(Constants.SELECT_TAG)
             return results
-
 
 class TagStrategie(AbstractStrategie):
     def __init__(self, sort):
@@ -147,3 +149,5 @@ class GroupStrategie(AbstractStrategie):
             return [(Constants.GROUPS_URL_SORTED + str(i)) for i in range(2, lastPage + 1)]
         else:
             return [(Constants.GROUPS_URL + str(i)) for i in range(2, lastPage + 1)]
+
+

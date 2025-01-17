@@ -3,7 +3,7 @@ import sys
 
 from np import np_api
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import requests
 import helper.Constants as Constants
@@ -11,11 +11,9 @@ import sqlite3
 from random import choice
 import functools
 from time import time
-
-class InvalidNuclearCode(discord.DiscordException):
-	def __init__(self, msg, **kwargs):
-		super().__init__(**kwargs)
-		self.msg = msg
+from exceptions import *
+import datetime
+from string import capwords
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -29,8 +27,6 @@ DOUJIN_CHANNEL_ID = list(map(int, os.getenv('DISCORD_DOUJIN_CHANNEL_ID').split('
 TEST_CHANNEL_ID = int(os.getenv('DISCORD_TEST_CHANNEL_ID'))
 
 nhentai = np_api()
-con = sqlite3.connect('doujins.db')
-cur = con.cursor()
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -50,15 +46,135 @@ def check_channel(doujin):
 	else:
 		return DOUJIN_CHANNEL_ID
 
+def check_date(date):
+	dates = date.split('-')
+	if len(dates) != 3:
+		return False
+	try:
+		x = datetime.datetime(int(dates[2]), int(dates[1]), int(dates[0]), tzinfo=datetime.timezone.utc)
+		return int(x.timestamp())
+	except ValueError:
+		return False
+
 bot = commands.Bot(intents=intents, command_prefix="!")
 
 async def run_blocking(blocking_func, *args, **kwargs):
     func = functools.partial(blocking_func, *args, **kwargs)
     return await bot.loop.run_in_executor(None, func)
 
+def parse_inputs(data):
+	con = sqlite3.connect('doujins.db')
+	cur = con.cursor()
+	if len(data) % 2 == 1:
+		if data[0][0] == '-':
+			raise InvalidInput(InvalidInput.nameWrongPosition, data[0])
+		name = cur.execute('SELECT full_name FROM command WHERE command = ?', (data[0].lower(),)).fetchall()
+		if len(name) == 0:
+			raise InvalidInput(InvalidInput.invalidName, data[0])
+		params = parse_inputs(data[1:])
+		params['name'] = name
+	else:
+		params = {}
+		for i in range(len(data) // 2):
+			if data[2 * i][0] != '-':
+				raise InvalidInput(InvalidInput.flagWrongPosition, data[2 * i])
+			if data[2 * i] == '-a':
+				if 'author' not in params:
+					params['author'] = data[2 * i + 1].lower()
+				else:
+					raise InvalidInput(InvalidInput.repetitiveFlag, '-a')
+			elif data[2 * i] == '-g':
+				if 'group' not in params:
+					params['group'] = data[2 * i + 1].lower()
+				else:
+					raise InvalidInput(InvalidInput.repetitiveFlag, '-g')
+			elif data[2 * i] == '-da':
+				check = check_date(data[2 * i + 1])
+				if not check:
+					raise InvalidInput(InvalidInput.invalidDate, data[2 * i + 1])
+				if 'after' in params:
+					raise InvalidInput(InvalidInput.repetitiveFlag, '-da')
+				params['after'] = check
+				after = data[2 * i + 1]
+			elif data[2 * i] == '-db':
+				check = check_date(data[2 * i + 1])
+				if not check:
+					raise InvalidInput(InvalidInput.invalidDate, data[2 * i + 1])
+				if 'before' in params:
+					raise InvalidInput(InvalidInput.repetitiveFlag, '-db')
+				params['before'] = check
+				before = data[2 * i + 1]
+			elif data[2 * i] == '-l':
+				language = data[2 * i + 1]
+				if language.lower() not in ('japanese', 'chinese', 'english'):
+					raise InvalidInput(InvalidInput.invalidLanguage, data[2 * i + 1])
+				if 'language' in params:
+					raise InvalidInput(InvalidInput.repetitiveFlag, '-l')
+				params['language'] = language.lower()
+			else:
+				raise InvalidInput(InvalidInput.invalidFlag, data[2 * i])
+		if 'before' in params and 'after' in params and params['before'] <= params['after']:
+			raise InvalidInput(InvalidInput.invalidTimePeriod, (before, after))
+	con.close()
+	return params
+
+def generate_random_BA_doujin(doujin_type, full_name, after, before, language, author, group):
+	con = sqlite3.connect('doujins.db')
+	cur = con.cursor()
+	components = ["SELECT id FROM doujin"]
+	if full_name:
+	    components.append("JOIN student ON (student.doujin_id = doujin.id)")
+	if author:
+	    components.append("JOIN author ON (author.doujin_id = doujin.id)")
+	if group:
+	    components.append("JOIN [group] ON ([group].doujin_id = doujin.id)")
+	components.append("WHERE doujin.type = ?")
+	args = []
+	if doujin_type == Constants.DoujinType.CUNNY:
+		args.append('cunny')
+	elif doujin_type == Constants.DoujinType.EMUACH:
+		args.append('emuach')
+	else:
+		args.append('others')
+	if full_name:
+		components.append("AND student.full_name = ?")
+		args.append(full_name)
+	if after:
+		components.append("AND doujin.upload_date > ?")
+		args.append(after)
+	if before:
+		components.append("AND doujin.upload_date < ?")
+		args.append(before)
+	if language:
+		components.append("AND doujin.language = ?")
+		args.append(language)
+	if author:
+		components.append('AND author.name = ?')
+		args.append(author)
+	if group:
+		components.append('AND [group].name = ?')
+		args.append(group)
+	script = ' '.join(components)
+	cur.execute(script, args)
+	try:
+		code = choice(cur.fetchall())[0]
+	except IndexError:
+		return 0
+	con.close()
+	return code
+
+with open('update_database_script.py', "r") as file:
+	scr = file.read()
+
+@tasks.loop(seconds=60)
+async def update_script():
+	await run_blocking(exec, scr)
+	print('DONE')
+
 @bot.event
 async def on_ready():
 	print(f'{bot.user} has connected to Discord!')
+	update_script.start()
 
 @bot.command(name='dou', help='Display the doujin with the specified code.')
 async def output_link(ctx, code):
@@ -70,11 +186,11 @@ async def output_link(ctx, code):
 			int(code)
 			req = requests.get("https://nhentai.net/g/" + code + "/")
 			if req.status_code == 404:
-				raise InvalidNuclearCode("ERROR: Doujin with code " + code + " doesn't exist.")
-		except ValueError:
-			await ctx.send("ERROR: " + code + " is not a natural number.")
+				raise InvalidNuclearCode(code, 0)
 		except InvalidNuclearCode as e:
 			await ctx.send(e.msg)
+		except ValueError:
+			await ctx.send("ERROR: " + code + " is not a natural number.")
 		else:
 			doujin = await run_blocking(nhentai.searchExplicitWithID, int(code))
 			msg = doujin.echoed_doujin_message
@@ -85,15 +201,10 @@ async def output_link(ctx, code):
 				await ctx.send("Right time, wrong place! Head over to <#" + str(appr[index]) + "> and share your sauce there!")
 
 @bot.command(name='rand', help='Display a random doujin.')
-async def random_ba_dou(ctx, *name):
+async def random_ba_dou(ctx, *args):
 	index = GUILD.index(ctx.guild.name)
 	if ctx.channel.category.name == CATEGORY[index]:
 		if ctx.author == bot.user:
-			return
-		try:
-			assert len(name) <= 1
-		except AssertionError:
-			await ctx.send("Too many arguments! Just one student's first name please!")
 			return
 		if ctx.channel.id == CUNNY_CHANNEL_ID[index]:
 			doujin_type = Constants.DoujinType.CUNNY
@@ -101,54 +212,73 @@ async def random_ba_dou(ctx, *name):
 			doujin_type = Constants.DoujinType.EMUACH
 		else:
 			doujin_type = Constants.DoujinType.OTHERS
-		if len(name) == 1:
-			data = cur.execute('SELECT full_name FROM students WHERE command = ?', (name[0].lower(),)).fetchall()
-			try:
-				assert len(data) != 0
-			except AssertionError:
-				await ctx.send("Invalid student name!")
-				return
-			codes = []
-			for full_name in data:
-				code = await run_blocking(nhentai.searchRandomBADoujin, full_name[0].lower(), doujin_type)
-				codes.append(code)
-		else:
-			code = await run_blocking(nhentai.searchRandomBADoujin, None, doujin_type)
-			codes = [code]
-		normal = list(filter(lambda x: x != -1, codes))
-		if len(normal) == 0:
-			code = -1
-		else:
-			functional = list(filter(lambda x: x != 0, normal))
-			if len(functional) == 0:
-				code = 0
+		try:
+			params = parse_inputs(args)
+			if 'group' not in params:
+				params['group'] = None
+			if 'author' not in params:
+				params['author'] = None
+			if 'after' not in params:
+				params['after'] = None
+			if 'before' not in params:
+				params['before'] = None
+			if 'language' not in params:
+				params['language'] = None
+			if 'name' not in params:
+				code = await run_blocking(generate_random_BA_doujin, doujin_type, None, params['after'], params['before'], params['language'], params['author'], params['group'])
+				codes = [code]
 			else:
-				code = choice(functional)
-		if code == 0:
-			await ctx.send("Sorry! There's no " + name[0][0].upper() + name[0][1:] + ' doujins of this type yet!')
-			return
-		elif code == -1:
-			await ctx.send("Sorry! Something went wrong!")
-			return
+				codes = []
+				for full_name in params['name']:
+					code = await run_blocking(generate_random_BA_doujin, doujin_type, full_name[0], params['after'], params['before'], params['language'], params['author'], params['group'])
+					codes.append(code)
+			codes = list(filter(lambda x: x != 0, codes))
+			if len(codes) == 0:
+				await ctx.send("Sorry! There's no doujins of this type yet!")
+				return
+			code = nhentai.searchExplicitWithID(choice(codes))
+			await ctx.send(code.echoed_doujin_message + "https://nhentai.net/g/" + str(code.id) + "/")
+		except InvalidInput as e:
+			await ctx.send(e.msg)
 	elif ctx.channel.name == DOUJIN_CHANNEL:
 		code = nhentai.pickRandom()
 		while "Blue Archive" in code.parodie:
 			code = nhentai.pickRandom()
-	await ctx.send(code.echoed_doujin_message + "https://nhentai.net/g/" + str(code.id) + "/")
+		await ctx.send(code.echoed_doujin_message + "https://nhentai.net/g/" + str(code.id) + "/")
 
 @bot.command(name='test', help='Testing~')
-async def testing(ctx, code):
+async def testing(ctx, *args):
 	if ctx.channel.id == TEST_CHANNEL_ID:
-		t = time()
-		await ctx.send(str(time() - t))
-		doujin = await run_blocking(nhentai.searchExplicitWithID, int(code))
-		await ctx.send(str(time() - t))
-		if doujin == -1:
-			await ctx.send("INVALID")
-		else:
-			msg = doujin.echoed_doujin_message
-			await ctx.send(msg + "https://nhentai.net/g/" + code + "/")
-			await ctx.send(str(time() - t))
+		doujin_type = Constants.DoujinType.OTHERS
+		try:
+			params = parse_inputs(args)
+			if 'group' not in params:
+				params['group'] = None
+			if 'author' not in params:
+				params['author'] = None
+			if 'after' not in params:
+				params['after'] = None
+			if 'before' not in params:
+				params['before'] = None
+			if 'language' not in params:
+				params['language'] = None
+			if 'name' not in params:
+				code = await run_blocking(generate_random_BA_doujin, doujin_type, None, params['after'], params['before'], params['language'], params['author'], params['group'])
+				codes = [code]
+			else:
+				codes = []
+				for full_name in params['name']:
+					code = await run_blocking(generate_random_BA_doujin, doujin_type, full_name[0], params['after'], params['before'], params['language'], params['author'], params['group'])
+					codes.append(code)
+			codes = list(filter(lambda x: x != 0, codes))
+			if len(codes) == 0:
+				await ctx.send("Sorry! There's no doujins of this type yet!")
+				return
+			code = choice(codes)
+			doujin = nhentai.searchExplicitWithID(code)
+			await ctx.send(doujin.echoed_doujin_message + "https://nhentai.net/g/" + str(code) + "/")
+		except InvalidInput as e:
+			await ctx.send(e.msg)
 
 @bot.event
 async def on_error(event, *args, **kwargs):
